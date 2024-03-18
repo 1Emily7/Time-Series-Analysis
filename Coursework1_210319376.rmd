@@ -1,0 +1,94 @@
+---
+title: "MTH6139 Time Series"
+subtitle: "Coursework 1"
+author:
+- name: "Emily Pettiford"
+date: "March 2024"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+# Mauna Loa Atmospheric CO2 Concentration
+
+This project aims to use historic data on the Atmospheric concentrations of CO2 at the Mauna Loa Volcano in Hawaii to:
+
+1.  get an impression for what the time series does,
+
+2.  identify any seasonal components or trends found,
+
+3.  predict future values.
+
+This data was collected at the Mauna Loa Observatory, Hawaii and constitute as the longest standing data measurements of CO2 in the atmosphere.
+
+The CO2 time series consists of: **468 observations from 1959 to 1997.**
+
+### Meta's Prophet Forecasting System
+
+This system is used to forecast time series data based on an additive model.
+
+We set the co2 time series is set up as a `dataframe` with time column `ds` and data column `y`. To access the time column in the co2 `ts`, we use the `time()` function which creates the vector at which the time series was sampled. Since the `Prophet` function only deals with dates in the form YYYY-MM we then convert to a vector of this form using `yearmon()` from the `zoo` library which is a class for representing monthly data.
+
+```{r}
+co2.df = data.frame(ds=zoo::as.yearmon(time(co2)),y=co2)
+```
+
+We apply the `prophet` function to fit our model.(::is used to access specific functions in the `prophet` package).
+
+```{r}
+m = prophet::prophet(co2.df, weekly.seasonality = TRUE, daily.seasonality = TRUE)
+```
+
+We then create a `dataframe` of predictions using the `make_future_dataframe` function with columns `ds`: the dates for which the model will predict. This function uses arguments `periods` and `freq` which control the amount of periods you want to explore and the frequency with which they occur. We look at several different combinations.
+
+```{r}
+
+fy = prophet::make_future_dataframe(m, 4, freq = 'quarter')
+
+f2y = prophet::make_future_dataframe(m, 8, freq = 'quarter')
+
+```
+
+Use the predict function (on both forecasts) which is based on previous datas behaviours.
+
+```{r}
+
+py = predict(m, fy)
+
+p2y = predict(m, f2y)
+
+```
+
+We then plot the model and the forecasts.
+
+```{r}
+plot(m,py)
+
+plot(m,p2y)
+
+```
+
+The only difference in these two plots is the extension of the trend line in the second one (m,p2y) as its forecast spans two years rather than one. Either way, we observe clear seasonality as peaks and troughs occur at regular, periodic points. This suggests that these fluctuations are predictable since they are re-occuring.
+
+We will now look at the breakdown of the components of the time series, the trend and seasonalities using the `prophet_plot_components` function. This creates plots of whichever are available:
+
+1.  trend
+
+2.  holidays
+
+3.  weekly seasonality
+
+4.  yearly seasonality
+
+5.  yearly seasonality
+
+I will only perform this function with the forecast `p2y`.
+
+```{r}
+
+prophet::prophet_plot_components(m, p2y)
+
+```
+
+Prophet observes a clear trend within the time series and weekly, yearly and daily seasonality. The trend shows a linear increase from the early 1950's to late 1990's. The daily seasonality suggests lower rates of CO2 throughout the day which could be due to the air at night being denser and cooler which would result in the gas settling nearer to the ground. The yearly seasonality suggests higher rates of CO2 in the spring and summer months which is clearly observed in our time series graph fluctuations.
